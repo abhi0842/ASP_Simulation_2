@@ -1,0 +1,64 @@
+.Container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.panelContainer {
+  position: relative;
+  width: 100%;
+  
+}
+.panelContainer h1 {
+  font-size: 30px;
+  color: rgb(244, 243, 243);
+  margin-bottom: 10px;
+}
+
+.panelButton {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  background-color: #2fb4e9;
+  
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.panelButton:hover {
+  background-color: #268eb4;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.buttonIcon {
+  margin-right: 8px;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+.panelContainer h1 {
+  font-size: 1.2rem;
+  
+   color: rgb(244, 243, 243);
+  margin-left: 10px;
+  text-align: left;
+}
+.panelButton{
+  font-size: 0.8rem;
+    padding: 4px 8px;
+}
+}

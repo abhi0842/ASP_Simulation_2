@@ -1,0 +1,53 @@
+.leftPanelContainer {
+    width: 66.66%;
+    height: 100%;
+    background-color: #FCFCF9;
+    /* border-right: 2px solid #000000da; */
+}
+
+h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: rgb(0, 0, 0);
+}
+
+.container {
+    padding: 0 10px;
+    /* border-right: 1px solid #868585da; */
+}
+
+.graphContainer {
+    margin-bottom: 20px;
+    /* height: 500px; */
+}
+
+.psdContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.algorithmBar {
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+@media (max-width: 768px) {
+    .leftPanelContainer {
+        width: 100%;
+        height: 100%;
+    }
+    .psdContainer {
+        flex-direction: column;
+        gap:-10px;
+        
+    }
+}

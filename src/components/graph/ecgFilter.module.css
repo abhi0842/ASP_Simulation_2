@@ -1,0 +1,20 @@
+.signalContainer {
+    max-height: 700px;
+    width: 100%;
+    background-color: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #dadada;
+    box-shadow: 0px 2px 8px rgba(94, 94, 94, 0.22);
+    margin-bottom: 20px;
+    padding-right: 20px;
+}
+
+.signalContainer h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.signalContainer span {
+    font-size: 1rem;
+    color: #000000;
+}
