@@ -17,24 +17,39 @@ export const SimulationProvider = ({ children }) => {
  
   // Adaptive filter params
   const [config, setConfig] = useState({
-    filterType: "NLMS", // "NLMS" or "RLS"
-    filterOrder: 32, // M
-    stepSize: 0.1, // mu
-    forgettingFactor: 0.99, // lambda
-    regularization: 0.01, // delta
+    filterType: "AR",
+    filterOrder: 8,
+    segmentLength: 512,
+    estimatorMode: "biased",
+    preprocessing: {
+      highPass: false,
+      smoothing: false,
+    },
+    stepSize: 0.1,
+    forgettingFactor: 0.99,
+    regularization: 0.01,
   });
 
   const [metrics, setMetrics] = useState({
-    algorithm: "NLMS",
-    order: 32,
+    algorithm: "AR",
+    order: 8,
     mse: "0.000000",
+    rms: "0.000000",
+  });
+
+  const [signalType, setSignalType] = useState("normal-ecg");
+  const [uploadedSignalName, setUploadedSignalName] = useState("");
+  const [uploadedSignalData, setUploadedSignalData] = useState(null);
+  const [arSummary, setArSummary] = useState({
+    coeffs: [],
+    rms: 0,
+    mse: 0,
   });
 
   // UI triggers (expected by components)
   const [generateECG, setGenerateECG] = useState(false);
   const [applyNoiseTrigger, setApplyNoiseTrigger] = useState(false);
   const [filteredECG, setFilteredECG] = useState(false);
-  const [applypsdTrigger, setApplypsdTrigger] = useState(false);
 
   // Noise toggles (expected by EcgNoisy)
   const [noise, setNoise] = useState({
@@ -113,10 +128,15 @@ export const SimulationProvider = ({ children }) => {
       setFilteredSamples([]);
       setCleanSignal([]);
 
-      const res = await fetch(csvFilePath);
-      if (!res.ok) throw new Error(`Failed to load ECG CSV: ${res.status}`);
-      const text = await res.text();
-      const parsed = parseCsvECG(text);
+      let parsed = null;
+      if (uploadedSignalData && signalType === "upload") {
+        parsed = uploadedSignalData;
+      } else {
+        const res = await fetch(csvFilePath);
+        if (!res.ok) throw new Error(`Failed to load ECG CSV: ${res.status}`);
+        const text = await res.text();
+        parsed = parseCsvECG(text);
+      }
       if (!parsed) throw new Error("CSV parse failed (no usable rows).");
 
       setRawSamples(parsed.points);
@@ -126,12 +146,17 @@ export const SimulationProvider = ({ children }) => {
       // Reset triggers for a fresh run
       setApplyNoiseTrigger(false);
       setFilteredECG(false);
-      setApplypsdTrigger(false);
-      setMetrics({ algorithm: config.filterType, order: config.filterOrder, mse: "0.000000" });
+      setMetrics({
+        algorithm: config.filterType,
+        order: config.filterOrder,
+        mse: "0.000000",
+        rms: "0.000000",
+      });
+      setArSummary({ coeffs: [], rms: 0, mse: 0 });
     } catch (e) {
       console.error(e);
     }
-  }, [csvFilePath, parseCsvECG, config.filterType, config.filterOrder]);
+  }, [csvFilePath, parseCsvECG, config.filterType, config.filterOrder, signalType, uploadedSignalData]);
 
   useEffect(() => {
     if (!generateECG) return;
@@ -164,8 +189,6 @@ export const SimulationProvider = ({ children }) => {
         setApplyNoiseTrigger,
         filteredECG,
         setFilteredECG,
-        applypsdTrigger,
-        setApplypsdTrigger,
 
         // noise toggles
         noise,
@@ -175,6 +198,12 @@ export const SimulationProvider = ({ children }) => {
         csvFilePath,
         setCsvFilePath,
         prevPathRef,
+        signalType,
+        setSignalType,
+        uploadedSignalName,
+        setUploadedSignalName,
+        uploadedSignalData,
+        setUploadedSignalData,
 
         // adaptive config
         config,
@@ -183,6 +212,8 @@ export const SimulationProvider = ({ children }) => {
         // metrics
         metrics,
         setMetrics,
+        arSummary,
+        setArSummary,
 
         // instruction UI controls
         showInstruction,

@@ -4,26 +4,17 @@ import { EcgUnfilter } from "../graph/EcgUnfilter.jsx";
 import { EcgFilter } from "../graph/EcgFilter.jsx";
 import { EcgNoisy } from "../graph/EcgNoisy.jsx";
 import { SimulationContext } from "../../context/SimulationContext.jsx";
-import { EcgUnfilteredPSD } from "../graph/EcgUnfilteredPSD.jsx";
-import { EcgFilteredPSD } from "../graph/EcgFilteredPSD.jsx";
+import { EcgAR } from "../graph/EcgAR.jsx";
 
 export const LeftPanel = () => {
-  const { generateECG, applyNoiseTrigger, filteredECG, applypsdTrigger } =
-    useContext(SimulationContext);
+  const { generateECG, applyNoiseTrigger, filteredECG } = useContext(SimulationContext);
   return (
     <div className={styles.leftPanelContainer}>
       <div className={styles.container}>
-        <div className={styles.psdContainer}>
-        {applypsdTrigger && <EcgUnfilteredPSD />}
-        {applypsdTrigger && <EcgFilteredPSD />}
-        </div>
         <div>{generateECG && <EcgUnfilter />}</div>
         <div>{applyNoiseTrigger && <EcgNoisy />}</div>
         <div>{filteredECG && <EcgFilter />}</div>
-        {/* <div className={styles.psdContainer}>
-        {applypsdTrigger && <EcgUnfilteredPSD />}
-        {applypsdTrigger && <EcgFilteredPSD />}
-        </div> */}
+        <div>{filteredECG && <EcgAR />}</div>
       </div>
     </div>
   );

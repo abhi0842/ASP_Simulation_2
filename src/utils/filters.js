@@ -15,14 +15,15 @@ export function calculateMSE(reference, filtered) {
   return acc / n;
 }
 
-export function autocorrelation(x, lagMax) {
+export function autocorrelation(x, lagMax, mode = "biased") {
   if (!Array.isArray(x) || x.length === 0) return [];
   const N = x.length;
   const r = new Array(lagMax + 1).fill(0);
   for (let k = 0; k <= lagMax; k++) {
     let acc = 0;
     for (let n = 0; n < N - k; n++) acc += x[n] * x[n + k];
-    r[k] = acc / N;
+    const denom = mode === "unbiased" ? Math.max(1, N - k) : N;
+    r[k] = acc / denom;
   }
   return r;
 }
@@ -55,10 +56,10 @@ export function levinsonDurbin(r, order) {
   return { arCoeffs: ar, reflection: refl, error };
 }
 
-export function estimateAR(signal, order) {
+export function estimateAR(signal, order, mode = "biased") {
   const p = Math.max(0, Math.floor(order || 0));
   if (!Array.isArray(signal) || signal.length === 0 || p === 0) return { arCoeffs: [], reflection: [], error: 0 };
-  const r = autocorrelation(signal, p);
+  const r = autocorrelation(signal, p, mode);
   return levinsonDurbin(r, p);
 }
 
@@ -139,6 +140,7 @@ export function demoARExperiment({
   nfft = 512,
   fs = 1,
   seed = null,
+  estimatorMode = "biased",
 } = {}) {
   if (!Array.isArray(reference) && !Array.isArray(noisy)) return { error: "Provide `reference` or `noisy` array" };
   const N = Array.isArray(reference) ? reference.length : noisy.length;
@@ -158,7 +160,7 @@ export function demoARExperiment({
   }
 
   const toEstimate = estimateFromNoisy ? noisySignal : Array.isArray(reference) ? reference : noisySignal;
-  const { arCoeffs, reflection, error } = estimateAR(toEstimate, arOrder);
+  const { arCoeffs, reflection, error } = estimateAR(toEstimate, arOrder, estimatorMode);
   const { prediction, errorSignal } = applyARPredict(noisySignal, arCoeffs);
   const mse = Array.isArray(reference) ? calculateMSE(reference, prediction) : null;
 
@@ -205,4 +207,90 @@ export function computePolesSimple(arCoeffs) {
     return { poles: [{ re, im }, { re, im: -im }], stable: mag < 1 };
   }
   return { poles: null, stable: null };
+}
+
+// Durand-Kerner method (Weierstrass) for polynomial roots
+export function computeRoots(coeffs, maxIter = 200, tol = 1e-8) {
+  // coeffs: [a0, a1, ..., an] for polynomial a0 + a1 z + ... + an z^n
+  const n = coeffs.length - 1;
+  if (n <= 0) return [];
+  // normalize to monic polynomial: z^n + b_{n-1} z^{n-1} + ... + b0
+  const a_n = coeffs[n];
+  if (a_n === 0) return [];
+  const b = coeffs.map((c) => c / a_n);
+
+  // initial guesses: roots of unity scaled
+  const roots = new Array(n);
+  const TWO_PI = 2 * Math.PI;
+  for (let i = 0; i < n; i++) {
+    const angle = (TWO_PI * i) / n;
+    const radius = 0.5 + 0.5 * (i / n);
+    roots[i] = { re: radius * Math.cos(angle), im: radius * Math.sin(angle) };
+  }
+
+  const polyVal = (z) => {
+    let re = 0,
+      im = 0;
+    // Horner's method
+    for (let k = n - 1; k >= 0; k--) {
+      const ck = b[k];
+      // multiply current (re,im) by z
+      const tmpRe = re * z.re - im * z.im;
+      const tmpIm = re * z.im + im * z.re;
+      re = tmpRe + ck;
+      im = tmpIm;
+    }
+    return { re, im };
+  };
+
+  const sub = (z1, z2) => ({ re: z1.re - z2.re, im: z1.im - z2.im });
+  const abs2 = (z) => z.re * z.re + z.im * z.im;
+  const div = (z1, z2) => {
+    const denom = z2.re * z2.re + z2.im * z2.im || 1e-16;
+    return { re: (z1.re * z2.re + z1.im * z2.im) / denom, im: (z1.im * z2.re - z1.re * z2.im) / denom };
+  };
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let maxChange = 0;
+    for (let i = 0; i < n; i++) {
+      const xi = roots[i];
+      const pxi = polyVal(xi);
+      // compute product (xi - xj)
+      let denom = { re: 1, im: 0 };
+      for (let j = 0; j < n; j++) {
+        if (j === i) continue;
+        const diff = sub(xi, roots[j]);
+        denom = { re: denom.re * diff.re - denom.im * diff.im, im: denom.re * diff.im + denom.im * diff.re };
+      }
+      // delta = p(xi)/denom
+      const delta = div(pxi, denom);
+      roots[i] = { re: xi.re - delta.re, im: xi.im - delta.im };
+      const change = Math.sqrt(delta.re * delta.re + delta.im * delta.im);
+      if (change > maxChange) maxChange = change;
+    }
+    if (maxChange < tol) break;
+  }
+
+  return roots.map((r) => ({ re: r.re, im: r.im }));
+}
+
+export function computePoles(arCoeffs) {
+  const p = (arCoeffs && arCoeffs.length) || 0;
+  if (p === 0) return { poles: [], stable: true };
+  // polynomial A(z) = 1 + a1 z^{-1} + ... + ap z^{-p}
+  // multiply by z^p: z^p + a1 z^{p-1} + ... + ap
+  // coefficients for poly in z: [ap, ..., a1, 1] (constant first)
+  const coeffs = [];
+  // constant term (z^0) is ap
+  for (let k = p; k >= 0; k--) {
+    if (k === 0) coeffs.push(arCoeffs[p - 1] || 0);
+    else if (k === p) coeffs.push(1);
+    else coeffs.push(arCoeffs[p - k - 1] || 0);
+  }
+  // coeffs currently [ap, a_{p-1}, ..., a1, 1]
+  // compute roots
+  const roots = computeRoots(coeffs);
+  const poles = roots.map((r) => ({ re: r.re, im: r.im }));
+  const stable = poles.every((z) => Math.sqrt(z.re * z.re + z.im * z.im) < 1 - 1e-8);
+  return { poles, stable };
 }
