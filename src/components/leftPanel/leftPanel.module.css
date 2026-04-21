@@ -30,16 +30,6 @@ h3 {
     gap: 10px;
 }
 
-.algorithmBar {
-    background: #ffffff;
-    border: 1px solid #e6e6e6;
-    padding: 8px 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
-    color: #111827;
-}
-
 @media (max-width: 768px) {
     .leftPanelContainer {
         width: 100%;

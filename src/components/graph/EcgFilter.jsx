@@ -100,13 +100,12 @@ export const EcgFilter = () => {
       };
     }
 
-    const estimateFromNoisy = !(Array.isArray(reference) && reference.length > 0);
     const arRes = demoARExperiment({
       reference,
       noisy,
       arOrder: Number(config.filterOrder) || 8,
       noiseStd: 0,
-      estimateFromNoisy,
+      estimateFromNoisy: true,
       fs: originalFs,
     });
     const prediction = arRes.prediction || [];
@@ -192,6 +191,7 @@ export const EcgFilter = () => {
           border: "1px solid #d1d5db",
           borderRadius: 8,
           background: "#f8fafc",
+          color: "#000",
         }}
       >
         <strong>Learning Guide (Interpret, not just plot)</strong>

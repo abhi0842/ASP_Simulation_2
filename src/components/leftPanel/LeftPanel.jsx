@@ -8,16 +8,11 @@ import { EcgUnfilteredPSD } from "../graph/EcgUnfilteredPSD.jsx";
 import { EcgFilteredPSD } from "../graph/EcgFilteredPSD.jsx";
 
 export const LeftPanel = () => {
-  const { generateECG, applyNoiseTrigger, filteredECG, applypsdTrigger, config } =
+  const { generateECG, applyNoiseTrigger, filteredECG, applypsdTrigger } =
     useContext(SimulationContext);
   return (
     <div className={styles.leftPanelContainer}>
       <div className={styles.container}>
-        {generateECG && (
-          <div className={styles.algorithmBar}>
-            <strong>Algorithm:</strong>&nbsp;{`AR(${config.filterOrder || 0}) — one-step prediction`}
-          </div>
-        )}
         <div className={styles.psdContainer}>
         {applypsdTrigger && <EcgUnfilteredPSD />}
         {applypsdTrigger && <EcgFilteredPSD />}
