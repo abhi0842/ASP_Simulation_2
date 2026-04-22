@@ -12,19 +12,17 @@ export function computePSD(signal, fs) {
 
   // Forward FFT → magnitude is AMPLITUDE SPECTRUM
   const fftResult = fft.forward(buffer, 'hanning');
-  const magnitude = fft.magnitude(fftResult);  // Amplitude vs freq
-  
- // var magnitudeInDB = magnitude.map((v) => 10 * Math.log10(v )); // magnitude in dB
-  var db = fft.magToDb(magnitude); // magnitude in dB
+  const magnitude = fft.magnitude(fftResult); // linear amplitude spectrum
 
-  //Standard linear PSD formula
-  const psd = db.map((v) => ((v * v ) / (N * fs))* 1000);
+  // Convert amplitude to power and normalize to get PSD (single-sided)
+  // PSD (linear) ≈ |X(k)|^2 / (N * fs)
+  const power = magnitude.map((v) => (v * v) / (N * fs));
 
-  const freqs = psd.map((_, i) => (i * fs) / N);
-
+  const freqs = power.map((_, i) => (i * fs) / N);
   const half = Math.floor(N / 2);
+
   return {
     freqs: freqs.slice(0, half),
-    psd: psd.slice(0, half),
+    psd: power.slice(0, half),
   };
 }

@@ -32,30 +32,39 @@ export function levinsonDurbin(r, order, regularization = 0) {
   const p = Math.max(0, Math.floor(order || 0));
   if (!Array.isArray(r) || r.length === 0) return { arCoeffs: [], reflection: [], error: 0 };
   const refl = new Array(p).fill(0);
-  // apply small regularization to the zero-lag autocorrelation (stabilizes matrix)
-  const r0 = (r[0] || 0) + (Number.isFinite(regularization) ? regularization : 0);
-  let error = r0;
-  if (p === 0) return { arCoeffs: [], reflection: [], error };
+  // regularize r[0] to avoid division by zero
+  let E = (r[0] || 0) + (Number.isFinite(regularization) ? regularization : 0);
+  if (p === 0) return { arCoeffs: [], reflection: [], error: E };
 
-  let prevA = [];
+  // a coefficients stored as a[0]=1, a[1..p]
+  const a = new Array(p + 1).fill(0);
+  a[0] = 1;
+
   for (let m = 1; m <= p; m++) {
-    let num = r[m] || 0;
-    for (let k = 1; k <= m - 1; k++) num -= (prevA[k - 1] || 0) * (r[m - k] || 0);
-    const lambda = error === 0 ? 0 : num / error;
+    // compute lambda = (r[m] - sum_{i=1}^{m-1} a[i]*r[m-i]) / E
+    let acc = 0;
+    for (let i = 1; i <= m - 1; i++) acc += a[i] * (r[m - i] || 0);
+    const lambda = E === 0 ? 0 : ((r[m] || 0) - acc) / E;
     refl[m - 1] = lambda;
 
-    const currA = new Array(m).fill(0);
-    for (let k = 1; k <= m - 1; k++) {
-      currA[k - 1] = (prevA[k - 1] || 0) - lambda * (prevA[m - k - 1] || 0);
+    // update coefficients: a_new[i] = a[i] - lambda * a[m-i]
+    const anew = a.slice();
+    anew[m] = lambda;
+    for (let i = 1; i <= m - 1; i++) {
+      anew[i] = a[i] - lambda * a[m - i];
     }
-    currA[m - 1] = lambda;
-    error = error * (1 - lambda * lambda);
-    prevA = currA;
+
+    // compute new prediction error
+    E = E * (1 - lambda * lambda);
+    if (!Number.isFinite(E) || E <= 0) E = 1e-12;
+
+    // copy back
+    for (let i = 0; i <= m; i++) a[i] = anew[i];
   }
 
   const ar = new Array(p).fill(0);
-  for (let i = 0; i < p; i++) ar[i] = prevA[i] || 0;
-  return { arCoeffs: ar, reflection: refl, error };
+  for (let i = 0; i < p; i++) ar[i] = a[i + 1] || 0;
+  return { arCoeffs: ar, reflection: refl, error: E };
 }
 
 export function estimateAR(signal, order, mode = "biased", regularization = 0) {
@@ -280,16 +289,15 @@ export function computePoles(arCoeffs) {
   if (p === 0) return { poles: [], stable: true };
   // polynomial A(z) = 1 + a1 z^{-1} + ... + ap z^{-p}
   // multiply by z^p: z^p + a1 z^{p-1} + ... + ap
-  // coefficients for poly in z: [ap, ..., a1, 1] (constant first)
+  // For AR model x[n] = sum_{k=1..p} a_k x[n-k] + e[n]
+  // characteristic polynomial in z: z^p - a1 z^{p-1} - a2 z^{p-2} - ... - ap
+  // represent polynomial as constant-first array: [-ap, -a_{p-1}, ..., -a1, 1]
   const coeffs = [];
-  // constant term (z^0) is ap
-  for (let k = p; k >= 0; k--) {
-    if (k === 0) coeffs.push(arCoeffs[p - 1] || 0);
-    else if (k === p) coeffs.push(1);
-    else coeffs.push(arCoeffs[p - k - 1] || 0);
+  for (let k = 0; k <= p; k++) {
+    if (k === p) coeffs.push(1);
+    else coeffs.push(-(arCoeffs[p - 1 - k] || 0));
   }
-  // coeffs currently [ap, a_{p-1}, ..., a1, 1]
-  // compute roots
+  // compute roots of polynomial (constant..z^p)
   const roots = computeRoots(coeffs);
   const poles = roots.map((r) => ({ re: r.re, im: r.im }));
   const stable = poles.every((z) => Math.sqrt(z.re * z.re + z.im * z.im) < 1 - 1e-8);
