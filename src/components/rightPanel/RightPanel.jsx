@@ -21,6 +21,10 @@ export const RightPanel = () => {
     setCsvFilePath,
     generateECG,
     setFilteredSamples,
+    rawSamples,
+    noisySamples,
+    cleanSignal,
+    applyNoiseTrigger,
     setSignalType,
     signalType,
     setUploadedSignalData,
@@ -147,21 +151,6 @@ export const RightPanel = () => {
     setApplyNoiseTrigger(false);
     setFilteredECG(false);
     setFilteredSamples([]);
-  };
-
-  const exportSummary = () => {
-    const coeffString = (arSummary.coeffs || []).map((c, i) => `a${i + 1}:${c.toFixed(6)}`).join(";");
-    const payload = [
-      "signalType,arOrder,segmentLength,estimator,mse,rms,coefficients",
-      `${signalType},${config.filterOrder},${config.segmentLength},${config.estimatorMode},${metrics.mse},${metrics.rms},${coeffString}`,
-    ].join("\n");
-    const blob = new Blob([payload], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ar-summary-${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -313,7 +302,6 @@ export const RightPanel = () => {
 
           <div className={styles.psdContainer}>
             <button onClick={runAr}>Run AR</button>
-            <button onClick={exportSummary}>Export</button>
             <button onClick={resetExperiment}>Reset</button>
           </div>
         </div>

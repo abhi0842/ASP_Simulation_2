@@ -28,11 +28,13 @@ export function autocorrelation(x, lagMax, mode = "biased") {
   return r;
 }
 
-export function levinsonDurbin(r, order) {
+export function levinsonDurbin(r, order, regularization = 0) {
   const p = Math.max(0, Math.floor(order || 0));
   if (!Array.isArray(r) || r.length === 0) return { arCoeffs: [], reflection: [], error: 0 };
   const refl = new Array(p).fill(0);
-  let error = r[0] || 0;
+  // apply small regularization to the zero-lag autocorrelation (stabilizes matrix)
+  const r0 = (r[0] || 0) + (Number.isFinite(regularization) ? regularization : 0);
+  let error = r0;
   if (p === 0) return { arCoeffs: [], reflection: [], error };
 
   let prevA = [];
@@ -56,11 +58,11 @@ export function levinsonDurbin(r, order) {
   return { arCoeffs: ar, reflection: refl, error };
 }
 
-export function estimateAR(signal, order, mode = "biased") {
+export function estimateAR(signal, order, mode = "biased", regularization = 0) {
   const p = Math.max(0, Math.floor(order || 0));
   if (!Array.isArray(signal) || signal.length === 0 || p === 0) return { arCoeffs: [], reflection: [], error: 0 };
   const r = autocorrelation(signal, p, mode);
-  return levinsonDurbin(r, p);
+  return levinsonDurbin(r, p, regularization);
 }
 
 export function applyARPredict(signal, arCoeffs) {
@@ -141,6 +143,7 @@ export function demoARExperiment({
   fs = 1,
   seed = null,
   estimatorMode = "biased",
+  regularization = 0,
 } = {}) {
   if (!Array.isArray(reference) && !Array.isArray(noisy)) return { error: "Provide `reference` or `noisy` array" };
   const N = Array.isArray(reference) ? reference.length : noisy.length;
@@ -160,7 +163,7 @@ export function demoARExperiment({
   }
 
   const toEstimate = estimateFromNoisy ? noisySignal : Array.isArray(reference) ? reference : noisySignal;
-  const { arCoeffs, reflection, error } = estimateAR(toEstimate, arOrder, estimatorMode);
+  const { arCoeffs, reflection, error } = estimateAR(toEstimate, arOrder, estimatorMode, regularization);
   const { prediction, errorSignal } = applyARPredict(noisySignal, arCoeffs);
   const mse = Array.isArray(reference) ? calculateMSE(reference, prediction) : null;
 
@@ -229,12 +232,10 @@ export function computeRoots(coeffs, maxIter = 200, tol = 1e-8) {
   }
 
   const polyVal = (z) => {
-    let re = 0,
-      im = 0;
-    // Horner's method
+    // Horner's method: start with leading coefficient b[n]
+    let re = b[n], im = 0;
     for (let k = n - 1; k >= 0; k--) {
       const ck = b[k];
-      // multiply current (re,im) by z
       const tmpRe = re * z.re - im * z.im;
       const tmpIm = re * z.im + im * z.re;
       re = tmpRe + ck;

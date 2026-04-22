@@ -102,12 +102,19 @@ export const EcgAR = () => {
     const theta = (i / 128) * Math.PI * 2;
     return { x: Math.cos(theta), y: Math.sin(theta) };
   });
-  const polePoints = analysis.poles.map((p) => ({ x: p.re, y: p.im }));
+  const stablePolePoints = (analysis.poles || [])
+    .filter((z) => Math.sqrt((z.re || 0) * (z.re || 0) + (z.im || 0) * (z.im || 0)) < 1 - 1e-8)
+    .map((p) => ({ x: p.re, y: p.im }));
+
+  const unstablePolePoints = (analysis.poles || [])
+    .filter((z) => Math.sqrt((z.re || 0) * (z.re || 0) + (z.im || 0) * (z.im || 0)) >= 1 - 1e-8)
+    .map((p) => ({ x: p.re, y: p.im }));
 
   const poleData = {
     datasets: [
       { label: "Unit circle", data: circle, borderColor: "#999", borderWidth: 1, pointRadius: 0, tension: 0 },
-      { label: "Poles", data: polePoints, backgroundColor: analysis.stable ? "#10b981" : "#ef4444", type: "scatter", showLine: false, pointRadius: 5 },
+      { label: "Stable poles", data: stablePolePoints, backgroundColor: "#10b981", type: "scatter", showLine: false, pointRadius: 5 },
+      { label: "Unstable poles", data: unstablePolePoints, backgroundColor: "#ef4444", type: "scatter", showLine: false, pointRadius: 7 },
     ],
   };
 
@@ -133,7 +140,11 @@ export const EcgAR = () => {
           <h4>Pole Plot — Stationarity Check</h4>
           <Line data={poleData} options={poleOptions} />
           <div style={{ fontSize: 13, marginTop: 6 }}>
-            Status: {analysis.stable ? <b style={{ color: "#10b981" }}>Stable (all poles inside unit circle)</b> : <b style={{ color: "#ef4444" }}>Unstable</b>}
+            {unstablePolePoints.length === 0 ? (
+              <b style={{ color: "#10b981" }}>Stable (all poles inside unit circle)</b>
+            ) : (
+              <b style={{ color: "#ef4444" }}>Unstable — {unstablePolePoints.length} pole(s) outside unit circle</b>
+            )}
           </div>
         </div>
       </div>
