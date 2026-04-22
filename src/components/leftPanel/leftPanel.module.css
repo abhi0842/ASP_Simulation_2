@@ -15,11 +15,16 @@ h3 {
 .container {
     padding: 0 10px;
     /* border-right: 1px solid #868585da; */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .graphContainer {
     margin-bottom: 20px;
-    /* height: 500px; */
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
 }
 
 .psdContainer {
