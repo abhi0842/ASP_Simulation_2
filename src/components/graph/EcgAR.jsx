@@ -6,6 +6,7 @@ import {
   Chart as ChartJS,
   LineElement,
   PointElement,
+  ScatterController,
   LinearScale,
   CategoryScale,
   Tooltip,
@@ -13,7 +14,7 @@ import {
 } from "chart.js";
 import { computePoles, estimateAR, applyARPredict } from "../../utils/filters";
 
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend);
+ChartJS.register(LineElement, PointElement, ScatterController, LinearScale, CategoryScale, Tooltip, Legend);
 
 function resampleForDisplay(data, fsOriginal, fsUser) {
   const step = fsOriginal / fsUser;
