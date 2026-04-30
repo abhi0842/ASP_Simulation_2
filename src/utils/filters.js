@@ -73,7 +73,6 @@ export function estimateAR(signal, order, mode = "biased", regularization = 0) {
   const r = autocorrelation(signal, p, mode);
   return levinsonDurbin(r, p, regularization);
 }
-
 export function applyARPredict(signal, arCoeffs) {
   if (!Array.isArray(signal) || signal.length === 0) return { prediction: [], errorSignal: [] };
   const p = (arCoeffs && arCoeffs.length) || 0;
