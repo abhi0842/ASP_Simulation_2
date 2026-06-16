@@ -11,7 +11,7 @@ export const TopPanel = () => {
     <div className={styles.Container}>
       <div className={styles.panelContainer}>
         <h1>
-          Application and Usage of Filters on ECG Signal
+         Simulate an Autoregressive stochastic process
         </h1>
         <div className={styles.buttonContainer}>
           <button

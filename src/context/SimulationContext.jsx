@@ -156,7 +156,7 @@ export const SimulationProvider = ({ children }) => {
     } catch (e) {
       console.error(e);
     }
-  }, [csvFilePath, parseCsvECG, config.filterType, config.filterOrder, signalType, uploadedSignalData]);
+  }, [csvFilePath, parseCsvECG, config.filterType, signalType, uploadedSignalData]);
 
   useEffect(() => {
     if (!generateECG) return;
